@@ -1,7 +1,7 @@
 package edu.touro.las.mcon364.test2;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,7 +47,12 @@ public class ParallelReportBuilder {
                                 int batchesProcessed) {}
 
 
-    // TODO 1: declare and initialize private thread-safe progress tracking state called numberOfBatchesProcessed
+    // TODO 1: declare and initialize private thread-safe progress tracking state
+    //  called numberOfBatchesProcessed
+    //ExecutorService pool = Executors.newCachedThreadPool();
+    //CountDownLatch latch = new CountDownLatch();
+    private final AtomicInteger numberOfBatches = new AtomicInteger(0);
+
     
     /*
      * TODO 2 — generateReport(List<List<Transaction>> batches, int workers)
@@ -76,8 +81,12 @@ public class ParallelReportBuilder {
             throws InterruptedException, ExecutionException, IllegalArgumentException {
 
         // TODO 2A: validate inputs where appropriate
+        if(batches.isEmpty()||batches == null) throw new IllegalArgumentException();
+        if(workers <= 0) throw new IllegalArgumentException();
 
         // TODO 2B: create the concurrency structure needed for the pattern you chose
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+
 
 
         // TODO 2C: submit or assign one unit of work per batch
@@ -91,11 +100,19 @@ public class ParallelReportBuilder {
         int globalMax = Integer.MIN_VALUE;
         int globalMin = Integer.MAX_VALUE;
 
+        for(List<Transaction> batch : batches){
+            executor.submit(()-> {totalAmount += batch.stream().mapToLong(Transaction::amount).sum();});
+
+        }
+
+
         // TODO 2D: after all work has been started, collect results
         // and combine them into the summary variables above
         // you don't have to use streams here. In this case for loop is acceptable
 
         // TODO 2E: shut down any concurrency resources you created
+        executor.shutdown();
+        executor.awaitTermination(30, TimeUnit.SECONDS);
 
         // TODO 2F: return the completed ReportSummary
         return null; //placeholder
@@ -107,6 +124,6 @@ public class ParallelReportBuilder {
      * Return the current number of batches processed.
      */
     public int getProcessedBatchCount() {
-       return 0; //placeholder
+       return numberOfBatches.get(); //placeholder
     }
 }
